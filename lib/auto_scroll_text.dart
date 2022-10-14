@@ -34,7 +34,7 @@ class AutoScrollText extends StatefulWidget {
     this.textStyle,
     this.scrollDirection = Axis.horizontal,
     this.curve = Curves.linear,
-    this.moveDistance = 1.0,
+    this.moveDistance = 3.0,
     this.timerRest = 100,
   });
 
