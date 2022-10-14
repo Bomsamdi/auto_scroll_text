@@ -9,7 +9,7 @@ https://user-images.githubusercontent.com/94292009/195745400-79f7c6ba-bd4c-47ff-
 ## Usage
 
 ```dart
-import 'package:auto_scroll_text/auto_scroll_text_impl.dart';
+import 'package:auto_scroll_text/auto_scroll_text.dart';
 
 Scaffold(
       appBar: AppBar(
