@@ -1,4 +1,4 @@
-import 'package:auto_scroll_text/auto_scroll_text_impl.dart';
+import 'package:auto_scroll_text/auto_scroll_text.dart';
 import 'package:flutter/material.dart';
 
 //  Created by Bomsamdi on 2022
