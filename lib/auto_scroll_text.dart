@@ -98,7 +98,7 @@ class AutoScrollText extends StatefulWidget {
 
   /// Limits number of scroll animation rounds.
   ///
-  /// Default is [infinity].
+  /// Default is infinity.
   ///
   /// ### Example:
   ///
