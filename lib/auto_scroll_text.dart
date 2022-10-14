@@ -1,8 +1,9 @@
+library auto_scroll_text;
+
 //  Created by Bomsamdi on 2022
 //  Copyright © 2022 Bomsamdi. All rights reserved.
 import 'dart:async';
 
-import 'package:auto_scroll_text/auto_scroll_text_mode.dart';
 import 'package:flutter/material.dart';
 
 /// AutoScrollText widget automatically scrolls provided [text]
@@ -426,4 +427,13 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   }
 
   bool get _available => mounted && _scrollController.hasClients;
+}
+
+/// Animation types for [AutoScrollText] widget.
+/// [endless] - scrolls text in one direction endlessly.
+/// [bouncing] - when text is scrolled to its end,
+/// starts animation to opposite direction.
+enum AutoScrollTextMode {
+  bouncing,
+  endless,
 }
