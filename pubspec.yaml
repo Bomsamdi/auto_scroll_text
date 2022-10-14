@@ -1,5 +1,5 @@
 name: auto_scroll_text
-description: A new Flutter package project.
+description: AutoScrollText is package for users which need a single line text widget without overlaping or TextOverflow.elipsis for long texts.
 version: 0.0.1
 homepage:
 
