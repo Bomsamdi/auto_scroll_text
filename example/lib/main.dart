@@ -1,4 +1,4 @@
-import 'package:auto_scroll_text/auto_scroll_text.dart';
+import 'package:auto_scroll_text/auto_scroll_text_impl.dart';
 import 'package:flutter/material.dart';
 
 //  Created by Bomsamdi on 2022
@@ -49,6 +49,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
                 onPressed: _openVertical,
                 child: const Text("Open VERTICAL example")),
+            ElevatedButton(
+                onPressed: _openBouncingHorizontal,
+                child: const Text("Open BOUNCING HORIZONTAL example")),
+            ElevatedButton(
+                onPressed: _openBouncingVertical,
+                child: const Text("Open BOUNCING VERTICAL example")),
           ],
         ),
       ),
@@ -64,6 +70,18 @@ class _MyHomePageState extends State<MyHomePage> {
   void _openVertical() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (context) => const VerticalExample(),
+    ));
+  }
+
+  void _openBouncingHorizontal() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => const BouncingHorizontalExample(),
+    ));
+  }
+
+  void _openBouncingVertical() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => const BouncingVerticalExample(),
     ));
   }
 }
@@ -88,9 +106,8 @@ class _HorizontalExampleState extends State<HorizontalExample> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: const <Widget>[
             AutoScrollText(
-              text:
-                  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
-              textStyle: TextStyle(fontSize: 24),
+              "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+              style: TextStyle(fontSize: 24),
             ),
           ],
         ),
@@ -119,10 +136,74 @@ class _VerticalExampleState extends State<VerticalExample> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: const <Widget>[
             AutoScrollText(
-              text:
-                  "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
-              textStyle: TextStyle(fontSize: 24),
+              "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+              style: TextStyle(fontSize: 24),
               scrollDirection: Axis.vertical,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BouncingHorizontalExample extends StatefulWidget {
+  const BouncingHorizontalExample({Key? key}) : super(key: key);
+
+  @override
+  State<BouncingHorizontalExample> createState() =>
+      _BouncingHorizontalExampleState();
+}
+
+class _BouncingHorizontalExampleState extends State<BouncingHorizontalExample> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Bouncing Horizontal Example"),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: const <Widget>[
+            AutoScrollText(
+              "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+              style: TextStyle(fontSize: 24),
+              mode: AutoScrollTextMode.bouncing,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BouncingVerticalExample extends StatefulWidget {
+  const BouncingVerticalExample({Key? key}) : super(key: key);
+
+  @override
+  State<BouncingVerticalExample> createState() =>
+      _BouncingVerticalExampleState();
+}
+
+class _BouncingVerticalExampleState extends State<BouncingVerticalExample> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Bouncing Vertical Example"),
+      ),
+      body: Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: const <Widget>[
+            AutoScrollText(
+              "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
+              style: TextStyle(fontSize: 24),
+              scrollDirection: Axis.vertical,
+              mode: AutoScrollTextMode.bouncing,
             ),
           ],
         ),
