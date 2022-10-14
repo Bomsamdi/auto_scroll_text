@@ -1,3 +1,7 @@
+## 0.0.5
+
+* Docs fix
+
 ## 0.0.4
 
 * Minor changes
