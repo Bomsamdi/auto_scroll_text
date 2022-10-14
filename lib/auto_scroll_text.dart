@@ -10,17 +10,32 @@ import 'after_layout_mixin.dart';
 /// text widget for long texts without overlaping or overflow.elipsis
 /// [AutoScrollText] supports both directions [Axis.horizontal] and [Axis.vertical]
 class AutoScrollText extends StatefulWidget {
+  /// [Text.text] of [AutoScrollText]
   final String text;
+
+  /// [TextStyle] of [Text]
   final TextStyle? textStyle;
-  final Axis scrollAxis;
+
+  /// [SingleChildScrollView.scrollDirection] default value [Axis.horizontal]
+  final Axis scrollDirection;
+
+  /// [Curve] of scroll animation
   final Curve curve;
+
+  /// Distance per tick
+  final double moveDistance;
+
+  /// Reset timer
+  final int timerRest;
 
   const AutoScrollText({
     super.key,
     required this.text,
     this.textStyle,
-    this.scrollAxis = Axis.horizontal,
+    this.scrollDirection = Axis.horizontal,
     this.curve = Curves.linear,
+    this.moveDistance = 1.0,
+    this.timerRest = 100,
   });
 
   @override
@@ -43,17 +58,14 @@ class AutoScrollTextState extends State<AutoScrollText>
   /// Repeatable timer
   Timer? timer;
 
-  /// Distance per tick
-  final double _moveDistance = 1.0;
-
-  /// Reset timer
-  final int _timerRest = 100;
-
   /// if text is to long for axis, define auto scroll action
   bool _isScrollable = false;
 
   /// SingleChildScrollView key
   final GlobalKey _scrollKey = GlobalKey();
+
+  /// Default [TextStyle] if [widget.textStyle] is null
+  TextStyle get defaultTextStyle => const TextStyle();
 
   @override
   void initState() {
@@ -61,21 +73,20 @@ class AutoScrollTextState extends State<AutoScrollText>
     super.initState();
   }
 
-  TextStyle get defaultTextStyle => const TextStyle();
-
   /// Timer for animation
   void _startTimer() {
     if (_scrollKey.currentContext != null) {
-      timer = Timer.periodic(Duration(milliseconds: _timerRest), (timer) {
+      timer = Timer.periodic(Duration(milliseconds: widget.timerRest), (timer) {
         double maxScrollExtent = _scrollController.position.maxScrollExtent;
         double pixels = _scrollController.position.pixels;
-        if (pixels + _moveDistance >= maxScrollExtent) {
+        if (pixels + widget.moveDistance >= maxScrollExtent) {
           position = 0;
           _scrollController.jumpTo(position);
         }
-        position += _moveDistance;
+        position += widget.moveDistance;
         _scrollController.animateTo(position,
-            duration: Duration(milliseconds: _timerRest), curve: Curves.linear);
+            duration: Duration(milliseconds: widget.timerRest),
+            curve: widget.curve);
       });
     }
   }
@@ -89,7 +100,7 @@ class AutoScrollTextState extends State<AutoScrollText>
 
   /// Text builder
   Widget _text() {
-    if (widget.scrollAxis == Axis.vertical) {
+    if (widget.scrollDirection == Axis.vertical) {
       String newString = textToScroll.split("").join("\n");
       return Text(
         newString,
@@ -115,7 +126,7 @@ class AutoScrollTextState extends State<AutoScrollText>
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       key: _scrollKey,
-      scrollDirection: widget.scrollAxis,
+      scrollDirection: widget.scrollDirection,
       controller: _scrollController,
       physics: _isScrollable
           ? const AlwaysScrollableScrollPhysics()
