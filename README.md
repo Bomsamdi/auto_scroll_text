@@ -1,3 +1,5 @@
+## AutoScrollText
+
 [AutoScrollText] is package for users which need a single line text widget without overlaping or TextOverflow.elipsis for long texts.
 
 ## Features
