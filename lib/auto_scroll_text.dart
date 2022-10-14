@@ -61,6 +61,8 @@ class AutoScrollTextState extends State<AutoScrollText>
     super.initState();
   }
 
+  TextStyle get defaultTextStyle => const TextStyle();
+
   /// Timer for animation
   void _startTimer() {
     if (_scrollKey.currentContext != null) {
@@ -91,14 +93,14 @@ class AutoScrollTextState extends State<AutoScrollText>
       String newString = textToScroll.split("").join("\n");
       return Text(
         newString,
-        style: widget.textStyle,
+        style: widget.textStyle ?? defaultTextStyle,
         textAlign: TextAlign.center,
       );
     }
     return Text(
       textToScroll,
+      style: widget.textStyle ?? defaultTextStyle,
       textAlign: TextAlign.justify,
-      style: widget.textStyle,
     );
   }
 
