@@ -1,3 +1,7 @@
+## 0.0.6
+
+* Padding for non-scrollable text added
+
 ## 0.0.5
 
 * Docs fix

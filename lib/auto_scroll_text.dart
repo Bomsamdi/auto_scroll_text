@@ -41,6 +41,7 @@ class AutoScrollText extends StatefulWidget {
     this.intervalSpaces,
     this.scrollDirection = Axis.horizontal,
     this.curve = Curves.linear,
+    this.padding = EdgeInsets.zero,
   }) : super(key: key);
 
   /// The text string, that would be scrolled.
@@ -227,6 +228,20 @@ class AutoScrollText extends StatefulWidget {
   /// )
   /// ```
   final Curve curve;
+
+  /// [EdgeInsets] of padding for non-scrollable animation
+  ///
+  /// Default is [EdgeInsets.zero].
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// AutoScrollText(
+  ///   'Text with linear animation,
+  ///   padding: EdgeInsets.all(8),
+  /// )
+  /// ```
+  final EdgeInsets padding;
 
   @override
   State<AutoScrollText> createState() => _AutoScrollTextState();
