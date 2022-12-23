@@ -304,10 +304,13 @@ class _AutoScrollTextState extends State<AutoScrollText> {
                   style: widget.style,
                   textAlign: widget.textAlign,
                 )
-              : Text(
-                  _endlessText ?? _text,
-                  style: widget.style,
-                  textAlign: widget.textAlign,
+              : Padding(
+                  padding: widget.padding,
+                  child: Text(
+                    _endlessText ?? _text,
+                    style: widget.style,
+                    textAlign: widget.textAlign,
+                  ),
                 ),
         ),
       ),
