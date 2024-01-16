@@ -1,8 +1,20 @@
 # AutoScrollText
 
-[![pub package](https://img.shields.io/pub/v/auto_scroll_text.svg)](https://pub.dev/packages/auto_scroll_text)  [![pub points](https://img.shields.io/pub/points/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text/score)  [![popularity](https://img.shields.io/pub/popularity/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text/score)
+[![Pub](https://img.shields.io/pub/v/auto_scroll_text.svg)](https://pub.dev/packages/auto_scroll_text)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![pub points](https://img.shields.io/pub/points/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text/score) 
+[![popularity](https://img.shields.io/pub/popularity/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text/score)
 
 [AutoScrollText] is package for users which need a single line text widget without overlaping or TextOverflow.elipsis for long texts.
+
+## Installation
+
+Include your package in your `pubspec.yaml` file:
+
+```yaml
+dependencies:
+  auto_scroll_text: ^0.0.6
+```
 
 ## Features
 
