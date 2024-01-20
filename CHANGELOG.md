@@ -1,3 +1,7 @@
+## 0.0.7
+
+* Fix issue with updating short text
+
 ## 0.0.6
 
 * Padding for non-scrollable text added
