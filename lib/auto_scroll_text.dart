@@ -421,7 +421,7 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   }
 
   void _onUpdate(AutoScrollText oldWidget) {
-    if (widget.text != oldWidget.text && _endlessText != null) {
+    if (widget.text != oldWidget.text) {
       setState(() {
         _endlessText = null;
         _originalTextWidth = null;
