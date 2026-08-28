@@ -12,6 +12,10 @@
   the last word of a slightly overflowing text stays readable in bouncing mode.
 * **New**: `overflow` applies a `TextOverflow` once scrolling has stopped after
   the last of `numberOfReps` rounds.
+* **Fix**: `numberOfReps` now counts only rounds that actually scrolled. In
+  endless mode the first pass merely lays out the repeated text, and it used to
+  consume a round - so `numberOfReps: 1` never scrolled at all, and the widget
+  settled while an animation was still running.
 * Parameter combinations that cannot work (`pauseAtEnd`/`pauseBetween` outside
   bouncing mode, `intervalSpaces` outside endless mode, `overflow` without
   `numberOfReps` or together with `selectable`) are now asserted in the

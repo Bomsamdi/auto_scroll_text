@@ -91,6 +91,9 @@ after the last of `numberOfReps` rounds: from that point the text is laid out
 within the available space and the part that does not fit is treated according
 to the given `TextOverflow`.
 
+`numberOfReps` counts rounds that actually scrolled, so `numberOfReps: 1` plays
+one full scroll before the text settles.
+
 It requires `numberOfReps` (without it the animation never stops) and is not
 supported together with `selectable: true`, because `SelectableText` has no
 overflow parameter. Both cases are asserted.

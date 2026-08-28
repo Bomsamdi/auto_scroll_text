@@ -340,6 +340,11 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   bool _finished = false;
   int _counter = 0;
 
+  /// What the last round did. A round that only prepared the repeated text, or
+  /// that bailed out because the widget went away, must not count towards
+  /// [AutoScrollText.numberOfReps].
+  _RoundOutcome _lastOutcome = _RoundOutcome.skipped;
+
   @override
   void initState() {
     super.initState();
@@ -428,13 +433,21 @@ class _AutoScrollTextState extends State<AutoScrollText> {
         timer.cancel();
         return;
       }
+      // A round in flight must be allowed to finish - checking the counter
+      // here would stop the widget mid-animation.
+      if (_running) return;
+      if (_lastOutcome == _RoundOutcome.fits) {
+        timer.cancel();
+        _onAnimationFinished();
+        return;
+      }
       final int? maxReps = widget.numberOfReps;
       if (maxReps != null && _counter >= maxReps) {
         timer.cancel();
         _onAnimationFinished();
         return;
       }
-      if (!_running) _runAnimation();
+      _runAnimation();
     });
   }
 
@@ -448,31 +461,22 @@ class _AutoScrollTextState extends State<AutoScrollText> {
 
   Future<void> _runAnimation() async {
     _running = true;
-    final int? maxReps = widget.numberOfReps;
-    if (maxReps == null || _counter < maxReps) {
-      _counter++;
-      switch (widget.mode) {
-        case AutoScrollTextMode.bouncing:
-          {
-            await _animateBouncing();
-            break;
-          }
-        default:
-          {
-            await _animateEndless();
-          }
-      }
-    }
+    final _RoundOutcome outcome = switch (widget.mode) {
+      AutoScrollTextMode.bouncing => await _animateBouncing(),
+      AutoScrollTextMode.endless => await _animateEndless(),
+    };
+    if (outcome == _RoundOutcome.played) _counter++;
+    _lastOutcome = outcome;
     _running = false;
   }
 
-  Future<void> _animateEndless() async {
-    if (!_available) return;
+  Future<_RoundOutcome> _animateEndless() async {
+    if (!_available) return _RoundOutcome.skipped;
     final ScrollPosition position = _scrollController.position;
     final bool needsScrolling = position.maxScrollExtent > 0;
     if (!needsScrolling) {
       if (_endlessText != null) setState(() => _endlessText = null);
-      return;
+      return _RoundOutcome.fits;
     }
     if (_endlessText == null || _originalTextWidth == null) {
       setState(() {
@@ -480,52 +484,55 @@ class _AutoScrollTextState extends State<AutoScrollText> {
             position.maxScrollExtent + position.viewportDimension;
         _endlessText = _text + _getSpaces(widget.intervalSpaces ?? 1) + _text;
       });
-      return;
+      // Only laid the repeated text out - the next round does the scrolling.
+      return _RoundOutcome.skipped;
     }
     final double endlessTextWidth =
         position.maxScrollExtent + position.viewportDimension;
     final double singleRoundExtent = endlessTextWidth - _originalTextWidth!;
     final Duration duration = _getDuration(singleRoundExtent);
-    if (duration == Duration.zero) return;
-    if (!_available) return;
+    if (duration == Duration.zero) return _RoundOutcome.fits;
+    if (!_available) return _RoundOutcome.skipped;
     await _scrollController.animateTo(
       singleRoundExtent,
       duration: duration,
       curve: widget.curve,
     );
-    if (!_available) return;
+    if (!_available) return _RoundOutcome.skipped;
     _scrollController.jumpTo(position.minScrollExtent);
+    return _RoundOutcome.played;
   }
 
-  Future<void> _animateBouncing() async {
-    if (!_available) return;
+  Future<_RoundOutcome> _animateBouncing() async {
+    if (!_available) return _RoundOutcome.skipped;
     final double maxExtent = _scrollController.position.maxScrollExtent;
     final double minExtent = _scrollController.position.minScrollExtent;
     final double extent = maxExtent - minExtent;
     final Duration duration = _getDuration(extent);
-    if (duration == Duration.zero) return;
-    if (!_available) return;
+    if (duration == Duration.zero) return _RoundOutcome.fits;
+    if (!_available) return _RoundOutcome.skipped;
     await _scrollController.animateTo(
       maxExtent,
       duration: duration,
       curve: widget.curve,
     );
-    if (!_available) return;
+    if (!_available) return _RoundOutcome.skipped;
     final Duration? pauseAtEnd = widget.pauseAtEnd;
     if (pauseAtEnd != null && pauseAtEnd > Duration.zero) {
       await _delay(pauseAtEnd);
-      if (!_available) return;
+      if (!_available) return _RoundOutcome.skipped;
     }
     await _scrollController.animateTo(
       minExtent,
       duration: duration,
       curve: widget.curve,
     );
-    if (!_available) return;
+    if (!_available) return _RoundOutcome.skipped;
     final Duration? pauseBetween = widget.pauseBetween;
     if (pauseBetween != null && pauseBetween > Duration.zero) {
       await _delay(pauseBetween);
     }
+    return _RoundOutcome.played;
   }
 
   /// A cancellable [Future.delayed]. The returned future also completes when
@@ -564,6 +571,7 @@ class _AutoScrollTextState extends State<AutoScrollText> {
       _originalTextWidth = null;
       _counter = 0;
       _finished = false;
+      _lastOutcome = _RoundOutcome.skipped;
       _text = _resolveText(widget.text);
     });
     if (_scrollController.hasClients) {
@@ -591,6 +599,19 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   }
 
   bool get _available => mounted && _scrollController.hasClients;
+}
+
+/// What a single animation round ended up doing.
+enum _RoundOutcome {
+  /// The text was actually scrolled - counts towards `numberOfReps`.
+  played,
+
+  /// Nothing was scrolled, but there is more to do: the endless text was just
+  /// laid out, or the widget went away mid-round.
+  skipped,
+
+  /// The text fits the available space, so there is nothing left to scroll.
+  fits,
 }
 
 /// Animation types for [AutoScrollText] widget.

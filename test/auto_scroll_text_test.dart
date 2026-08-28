@@ -198,23 +198,60 @@ void main() {
           const AutoScrollText(
             _longText,
             numberOfReps: 1,
+            velocity: Velocity(pixelsPerSecond: Offset(10000, 0)),
             overflow: TextOverflow.ellipsis,
           ),
         ),
       );
       expect(find.byType(SingleChildScrollView), findsOneWidget);
 
-      // One round, then the next tick stops the animation for good.
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump();
+      double maxOffsetSeen = 0;
+      for (int i = 0; i < 16; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        if (find.byType(Scrollable).evaluate().isNotEmpty) {
+          maxOffsetSeen = maxOffsetSeen > _controllerOf(tester).offset
+              ? maxOffsetSeen
+              : _controllerOf(tester).offset;
+        }
+      }
+
+      // The round really scrolled before the widget settled - in endless mode
+      // the first pass only lays out the repeated text and must not count as
+      // one of numberOfReps.
+      expect(maxOffsetSeen, greaterThan(0));
 
       expect(find.byType(SingleChildScrollView), findsNothing);
       final Text text = tester.widget<Text>(find.byType(Text));
       expect(text.overflow, TextOverflow.ellipsis);
       expect(text.maxLines, 1);
       expect(text.softWrap, isFalse);
+    });
+
+    testWidgets('does not settle before the last round has finished', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          const AutoScrollText(
+            _longText,
+            // Default velocity, so a single round takes seconds.
+            numberOfReps: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      );
+
+      // Used to collapse to the ellipsis after ~150 ms: the counter was read
+      // right after being incremented, so the third tick ended the animation
+      // that the second tick had just started.
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(_controllerOf(tester).offset, greaterThan(0));
+
+      await tester.pumpWidget(const SizedBox.shrink());
     });
 
     testWidgets('new text resumes scrolling after the animation had stopped', (
@@ -225,14 +262,14 @@ void main() {
           const AutoScrollText(
             _longText,
             numberOfReps: 1,
+            velocity: Velocity(pixelsPerSecond: Offset(10000, 0)),
             overflow: TextOverflow.ellipsis,
           ),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump();
+      for (int i = 0; i < 16; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       expect(find.byType(SingleChildScrollView), findsNothing);
 
       await tester.pumpWidget(
@@ -240,6 +277,7 @@ void main() {
           const AutoScrollText(
             'A different long text that also does not fit the viewport at all.',
             numberOfReps: 1,
+            velocity: Velocity(pixelsPerSecond: Offset(10000, 0)),
             overflow: TextOverflow.ellipsis,
           ),
         ),
