@@ -1,5 +1,3 @@
-library auto_scroll_text;
-
 //  Created by Bomsamdi on 2022
 //  Copyright © 2022 Bomsamdi. All rights reserved.
 import 'dart:async';
@@ -18,6 +16,7 @@ import 'package:flutter/material.dart';
 ///     delayBefore: Duration(milliseconds: 500),
 ///     numberOfReps: 5,
 ///     pauseBetween: Duration(milliseconds: 50),
+///     pauseAtEnd: Duration(milliseconds: 500),
 ///     style: TextStyle(color: Colors.green),
 ///     textAlign: TextAlign.right,
 ///     selectable: true,
@@ -28,13 +27,14 @@ import 'package:flutter/material.dart';
 class AutoScrollText extends StatefulWidget {
   const AutoScrollText(
     this.text, {
-    Key? key,
+    super.key,
     this.style,
     this.textAlign,
     this.textDirection = TextDirection.ltr,
     this.numberOfReps,
     this.delayBefore,
     this.pauseBetween,
+    this.pauseAtEnd,
     this.mode = AutoScrollTextMode.endless,
     this.velocity = const Velocity(pixelsPerSecond: Offset(80, 0)),
     this.selectable = false,
@@ -42,7 +42,29 @@ class AutoScrollText extends StatefulWidget {
     this.scrollDirection = Axis.horizontal,
     this.curve = Curves.linear,
     this.padding = EdgeInsets.zero,
-  }) : super(key: key);
+    this.overflow,
+  }) : assert(
+         pauseBetween == null || mode == AutoScrollTextMode.bouncing,
+         'pauseBetween is only available in AutoScrollTextMode.bouncing mode',
+       ),
+       assert(
+         pauseAtEnd == null || mode == AutoScrollTextMode.bouncing,
+         'pauseAtEnd is only available in AutoScrollTextMode.bouncing mode',
+       ),
+       assert(
+         intervalSpaces == null || mode == AutoScrollTextMode.endless,
+         'intervalSpaces is only available in AutoScrollTextMode.endless mode',
+       ),
+       assert(
+         overflow == null || !selectable,
+         'overflow is not supported when selectable is true, because '
+         'SelectableText has no overflow parameter',
+       ),
+       assert(
+         overflow == null || numberOfReps != null,
+         'overflow is only applied once scrolling has stopped, so it requires '
+         'numberOfReps to be set',
+       );
 
   /// The text string, that would be scrolled.
   /// In case text does fit into allocated space, it wouldn't be scrolled
@@ -126,11 +148,14 @@ class AutoScrollText extends StatefulWidget {
   /// ```
   final Duration? delayBefore;
 
-  /// Determines pause interval between animation rounds.
+  /// Determines pause interval between animation rounds, i.e. after the text
+  /// has scrolled back to its starting position.
   ///
   /// Only allowed if [mode] is set to [AutoScrollTextMode.bouncing].
   ///
   /// Default is [Duration.zero].
+  ///
+  /// See also [pauseAtEnd], which pauses at the opposite edge.
   ///
   /// ### Example:
   ///
@@ -142,6 +167,29 @@ class AutoScrollText extends StatefulWidget {
   /// )
   /// ```
   final Duration? pauseBetween;
+
+  /// Determines how long the animation waits at the far end of the text,
+  /// before scrolling back to the start.
+  ///
+  /// Useful for texts that only slightly overflow their viewport: the scroll
+  /// extent is then short, so without a pause the last word bounces back
+  /// before it can be read.
+  ///
+  /// Only allowed if [mode] is set to [AutoScrollTextMode.bouncing].
+  ///
+  /// Default is [Duration.zero], which keeps the pre-1.0.0 behaviour of
+  /// turning back immediately.
+  ///
+  /// ### Example:
+  ///
+  /// ```dart
+  /// AutoScrollText(
+  ///   'A slightly too long text whose end should stay readable',
+  ///   mode: AutoScrollTextMode.bouncing,
+  ///   pauseAtEnd: Duration(milliseconds: 500),
+  /// )
+  /// ```
+  final Duration? pauseAtEnd;
 
   /// Sets one of two different types of scrolling behavior.
   /// [AutoScrollTextMode.endless] - default, scrolls text in one direction endlessly.
@@ -243,27 +291,59 @@ class AutoScrollText extends StatefulWidget {
   /// ```
   final EdgeInsets padding;
 
+  /// [TextOverflow] applied to the text once scrolling has stopped, i.e. after
+  /// [numberOfReps] rounds have been played.
+  ///
+  /// While the text is scrolling it lives inside a scroll view and is therefore
+  /// laid out unconstrained, where no overflow can occur. Once the animation
+  /// stops, the text is laid out within the available space instead, and this
+  /// value decides how the part that does not fit is treated.
+  ///
+  /// Requires [numberOfReps] to be set - without it the animation never stops.
+  /// Not supported together with `selectable: true`, because [SelectableText]
+  /// has no overflow parameter. Intended for [Axis.horizontal].
+  ///
+  /// `null` by default, which keeps the text scrollable after the last round.
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// AutoScrollText(
+  ///   'Scroll three times, then cut the rest off with an ellipsis',
+  ///   numberOfReps: 3,
+  ///   overflow: TextOverflow.ellipsis,
+  /// )
+  /// ```
+  final TextOverflow? overflow;
+
   @override
   State<AutoScrollText> createState() => _AutoScrollTextState();
 }
 
 class _AutoScrollTextState extends State<AutoScrollText> {
-  final _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   String _text = "";
   String? _endlessText;
   double? _originalTextWidth;
+
+  /// Drives the animation rounds.
   Timer? _timer;
+
+  /// Tracks [AutoScrollText.delayBefore], [AutoScrollText.pauseAtEnd] and
+  /// [AutoScrollText.pauseBetween] so that no timer outlives this state.
+  /// A bare `Future.delayed` cannot be cancelled, which left a pending timer
+  /// behind whenever the widget was disposed mid-delay.
+  Timer? _delayTimer;
+  Completer<void>? _delayCompleter;
+
   bool _running = false;
+  bool _finished = false;
   int _counter = 0;
+
   @override
   void initState() {
     super.initState();
-    if (widget.scrollDirection == Axis.vertical) {
-      String newString = widget.text.split("").join("\n");
-      _text = newString;
-    } else {
-      _text = widget.text;
-    }
+    _text = _resolveText(widget.text);
     final WidgetsBinding binding = WidgetsBinding.instance;
     binding.addPostFrameCallback(_initScroll);
   }
@@ -277,19 +357,30 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   @override
   void dispose() {
     _timer?.cancel();
+    _timer = null;
+    _cancelPendingDelay();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    assert(
-        widget.pauseBetween == null ||
-            widget.mode == AutoScrollTextMode.bouncing,
-        'pauseBetween is only available in AutoScrollTextMode.bouncing mode');
-    assert(
-        widget.intervalSpaces == null ||
-            widget.mode == AutoScrollTextMode.endless,
-        'intervalSpaces is only available in AutoScrollTextMode.endless mode');
+    if (_finished && widget.overflow != null) {
+      return Directionality(
+        textDirection: widget.textDirection,
+        child: Padding(
+          padding: widget.padding,
+          child: Text(
+            _text,
+            style: widget.style,
+            textAlign: widget.textAlign,
+            overflow: widget.overflow,
+            softWrap: false,
+            maxLines: widget.scrollDirection == Axis.vertical ? null : 1,
+          ),
+        ),
+      );
+    }
     return Directionality(
       textDirection: widget.textDirection,
       child: Scrollbar(
@@ -317,9 +408,22 @@ class _AutoScrollTextState extends State<AutoScrollText> {
     );
   }
 
-  Future<void> _initScroll(_) async {
-    await _delayBeforeStartAnimation();
-    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+  void _initScroll(Duration _) {
+    final Duration? delayBefore = widget.delayBefore;
+    if (delayBefore == null || delayBefore <= Duration.zero) {
+      _startTimer();
+      return;
+    }
+    _delayTimer = Timer(delayBefore, () {
+      _delayTimer = null;
+      if (!mounted) return;
+      _startTimer();
+    });
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 50), (Timer timer) {
       if (!_available) {
         timer.cancel();
         return;
@@ -327,10 +431,19 @@ class _AutoScrollTextState extends State<AutoScrollText> {
       final int? maxReps = widget.numberOfReps;
       if (maxReps != null && _counter >= maxReps) {
         timer.cancel();
+        _onAnimationFinished();
         return;
       }
       if (!_running) _runAnimation();
     });
+  }
+
+  /// Called once the last round of [AutoScrollText.numberOfReps] has been
+  /// played. Only matters when [AutoScrollText.overflow] asked for the text to
+  /// be laid out within the available space afterwards.
+  void _onAnimationFinished() {
+    if (!mounted || _finished || widget.overflow == null) return;
+    setState(() => _finished = true);
   }
 
   Future<void> _runAnimation() async {
@@ -385,6 +498,7 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   }
 
   Future<void> _animateBouncing() async {
+    if (!_available) return;
     final double maxExtent = _scrollController.position.maxScrollExtent;
     final double minExtent = _scrollController.position.minScrollExtent;
     final double extent = maxExtent - minExtent;
@@ -397,21 +511,44 @@ class _AutoScrollTextState extends State<AutoScrollText> {
       curve: widget.curve,
     );
     if (!_available) return;
+    final Duration? pauseAtEnd = widget.pauseAtEnd;
+    if (pauseAtEnd != null && pauseAtEnd > Duration.zero) {
+      await _delay(pauseAtEnd);
+      if (!_available) return;
+    }
     await _scrollController.animateTo(
       minExtent,
       duration: duration,
       curve: widget.curve,
     );
     if (!_available) return;
-    if (widget.pauseBetween != null) {
-      await Future<dynamic>.delayed(widget.pauseBetween!);
+    final Duration? pauseBetween = widget.pauseBetween;
+    if (pauseBetween != null && pauseBetween > Duration.zero) {
+      await _delay(pauseBetween);
     }
   }
 
-  Future<void> _delayBeforeStartAnimation() async {
-    final Duration? delayBefore = widget.delayBefore;
-    if (delayBefore == null) return;
-    await Future<dynamic>.delayed(delayBefore);
+  /// A cancellable [Future.delayed]. The returned future also completes when
+  /// this state is disposed, so callers resume and bail out on [_available]
+  /// instead of leaving a pending timer behind.
+  Future<void> _delay(Duration duration) {
+    _cancelPendingDelay();
+    final Completer<void> completer = Completer<void>();
+    _delayCompleter = completer;
+    _delayTimer = Timer(duration, () {
+      _delayTimer = null;
+      _delayCompleter = null;
+      if (!completer.isCompleted) completer.complete();
+    });
+    return completer.future;
+  }
+
+  void _cancelPendingDelay() {
+    _delayTimer?.cancel();
+    _delayTimer = null;
+    final Completer<void>? completer = _delayCompleter;
+    _delayCompleter = null;
+    if (completer != null && !completer.isCompleted) completer.complete();
   }
 
   Duration _getDuration(double extent) {
@@ -421,20 +558,29 @@ class _AutoScrollTextState extends State<AutoScrollText> {
   }
 
   void _onUpdate(AutoScrollText oldWidget) {
-    if (widget.text != oldWidget.text) {
-      setState(() {
-        _endlessText = null;
-        _originalTextWidth = null;
-        if (widget.scrollDirection == Axis.vertical) {
-          String newString = widget.text.split("").join("\n");
-          _text = newString;
-        } else {
-          _text = widget.text;
-        }
-      });
+    if (widget.text == oldWidget.text) return;
+    setState(() {
+      _endlessText = null;
+      _originalTextWidth = null;
+      _counter = 0;
+      _finished = false;
+      _text = _resolveText(widget.text);
+    });
+    if (_scrollController.hasClients) {
       _scrollController.jumpTo(_scrollController.position.minScrollExtent);
     }
+    final Timer? timer = _timer;
+    if (timer == null || !timer.isActive) {
+      WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+        if (mounted) _startTimer();
+      });
+    }
   }
+
+  /// In [Axis.vertical] the text is laid out one character per line.
+  String _resolveText(String text) => widget.scrollDirection == Axis.vertical
+      ? text.split("").join("\n")
+      : text;
 
   String _getSpaces(int number) {
     String spaces = '';
@@ -451,7 +597,4 @@ class _AutoScrollTextState extends State<AutoScrollText> {
 /// [endless] - scrolls text in one direction endlessly.
 /// [bouncing] - when text is scrolled to its end,
 /// starts animation to opposite direction.
-enum AutoScrollTextMode {
-  bouncing,
-  endless,
-}
+enum AutoScrollTextMode { bouncing, endless }

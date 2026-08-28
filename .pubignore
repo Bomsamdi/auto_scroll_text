@@ -1,0 +1,31 @@
+# .pubignore replaces .gitignore for publishing, so the entries below repeat the
+# ones from .gitignore that must stay out of the archive.
+
+# The demo video is linked from the README by URL and is not needed by anyone
+# installing this package - it accounted for the whole archive size.
+screenshots/
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.packages
+build/
