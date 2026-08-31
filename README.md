@@ -1,6 +1,6 @@
 # AutoScrollText
 
-[![Pub](https://img.shields.io/pub/v/auto_scroll_text.svg)](https://pub.dev/packages/auto_scroll_text)
+[![Pub Version](https://img.shields.io/pub/v/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![pub points](https://img.shields.io/pub/points/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text/score)
 [![likes](https://img.shields.io/pub/likes/auto_scroll_text)](https://pub.dev/packages/auto_scroll_text/score)
